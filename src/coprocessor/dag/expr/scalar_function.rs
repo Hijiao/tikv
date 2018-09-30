@@ -239,6 +239,7 @@ impl ScalarFunc {
             | ScalarFuncSig::UnHex
             | ScalarFuncSig::Cot
             | ScalarFuncSig::Degrees
+            | ScalarFuncSig::RandomBytes
             | ScalarFuncSig::SHA1
             | ScalarFuncSig::MD5 => (1, 1),
 
@@ -401,7 +402,6 @@ impl ScalarFunc {
             | ScalarFuncSig::Quarter
             | ScalarFuncSig::Quote
             | ScalarFuncSig::Radians
-            | ScalarFuncSig::RandomBytes
             | ScalarFuncSig::RealAnyValue
             | ScalarFuncSig::ReleaseLock
             | ScalarFuncSig::Repeat
@@ -906,6 +906,7 @@ dispatch_call! {
         Inet6Aton => inet6_aton,
         Inet6Ntoa => inet6_ntoa,
         MD5 => md5,
+        RandomBytes => random_bytes,
         SHA1 => sha1,
         SHA2 => sha2,
         Elt => elt,
@@ -1190,6 +1191,7 @@ mod test {
                     ScalarFuncSig::IsIPv4,
                     ScalarFuncSig::IsIPv6,
                     ScalarFuncSig::MD5,
+                    ScalarFuncSig::RandomBytes,
                     ScalarFuncSig::SHA1,
                     ScalarFuncSig::Cot,
                     ScalarFuncSig::Degrees,
@@ -1397,7 +1399,6 @@ mod test {
             ScalarFuncSig::Quarter,
             ScalarFuncSig::Quote,
             ScalarFuncSig::Radians,
-            ScalarFuncSig::RandomBytes,
             ScalarFuncSig::RealAnyValue,
             ScalarFuncSig::ReleaseLock,
             ScalarFuncSig::Repeat,

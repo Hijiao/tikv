@@ -13,7 +13,7 @@
 
 use std::borrow::Cow;
 
-use super::{EvalContext, Result, ScalarFunc};
+use super::{Error, EvalContext, Result, ScalarFunc};
 use coprocessor::codec::Datum;
 use crypto::{
     digest::Digest,
@@ -21,6 +21,9 @@ use crypto::{
     sha1::Sha1,
     sha2::{Sha224, Sha256, Sha384, Sha512},
 };
+use std::iter::repeat;
+
+use rand::{thread_rng, Rng};
 
 const SHA0: i64 = 0;
 const SHA224: i64 = 224;
@@ -86,12 +89,27 @@ impl ScalarFunc {
         };
         Ok(Some(Cow::Owned(sha2)))
     }
+
+    pub fn random_bytes<'a, 'b: 'a>(
+        &'b self,
+        ctx: &mut EvalContext,
+        row: &[Datum],
+    ) -> Result<Option<Cow<'a, [u8]>>> {
+        let len = try_opt!(self.children[0].eval_int(ctx, row));
+        if len < 1 || len > 1024 {
+            return Err(Error::overflow("length", "random_bytes"));
+        }
+        let mut buff: Vec<u8> = repeat(0u8).take(len as usize).collect();
+        thread_rng().fill_bytes(buff.as_mut());
+
+        Ok(Some(Cow::Owned(buff)))
+    }
 }
 
 #[cfg(test)]
 mod test {
     use coprocessor::codec::Datum;
-    use coprocessor::dag::expr::test::{datum_expr, scalar_func_expr};
+    use coprocessor::dag::expr::test::{check_overflow, datum_expr, scalar_func_expr};
     use coprocessor::dag::expr::{EvalContext, Expression};
     use tipb::expression::ScalarFuncSig;
 
@@ -201,5 +219,47 @@ mod test {
             let got = op.eval(&mut ctx, &[]).unwrap();
             assert_eq!(got, exp, "sha2('{:?}', {:?})", input, hash_length);
         }
+    }
+
+    #[test]
+    fn test_random_bytes() {
+        let mut ctx = EvalContext::default();
+
+        let test_cases = vec![
+            (Datum::I64(1), 1),
+            (Datum::I64(32), 32),
+            (Datum::I64(1024), 1024),
+        ];
+
+        for (input_raw, expect_len) in test_cases {
+            let input = datum_expr(input_raw);
+            let op = scalar_func_expr(ScalarFuncSig::RandomBytes, &[input]);
+            let op = Expression::build(&mut ctx, op).unwrap();
+            let got = op.eval_string(&mut ctx, &[]).unwrap();
+            assert_eq!(
+                got.unwrap().into_owned().len(),
+                expect_len,
+                "random_bytes({:?})",
+                expect_len
+            );
+        }
+
+        // overflow tests where input  < 1 or input > 1024
+        let overflow_cases = vec![Datum::I64(-32), Datum::I64(0), Datum::I64(1025)];
+
+        for inout_raw in overflow_cases {
+            let input = datum_expr(inout_raw.clone());
+            let op = scalar_func_expr(ScalarFuncSig::RandomBytes, &[input]);
+            let op = Expression::build(&mut ctx, op).unwrap();
+            let got = op.eval(&mut ctx, &[]).unwrap_err();
+            assert!(check_overflow(got).is_ok(), "random_bytes({:?})", inout_raw);
+        }
+
+        // null test
+        let input = datum_expr(Datum::Null);
+        let op = scalar_func_expr(ScalarFuncSig::RandomBytes, &[input]);
+        let op = Expression::build(&mut ctx, op).unwrap();
+        let got = op.eval(&mut ctx, &[]).unwrap();
+        assert_eq!(Datum::Null, got, "random_bytes(NULL)");
     }
 }
