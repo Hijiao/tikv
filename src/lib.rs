@@ -52,6 +52,7 @@ extern crate futures;
 extern crate futures_cpupool;
 extern crate fxhash;
 extern crate grpcio as grpc;
+extern crate hashbrown;
 extern crate hex;
 extern crate indexmap;
 extern crate kvproto;

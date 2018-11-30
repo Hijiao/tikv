@@ -31,6 +31,7 @@ harness = false
 name = "benches"
 
 [dependencies]
+hashbrown = {version = "0.1", features = ["serde"]}
 log = { version = "0.3", features = ["release_max_level_debug"] }
 slog = "2.3"
 slog-async = "2.3"
