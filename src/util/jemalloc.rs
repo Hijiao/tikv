@@ -14,8 +14,11 @@
 #[cfg(all(unix, not(fuzzing)))]
 mod jemalloc {
     use jemallocator::ffi::malloc_stats_print;
+    use jemallocator::ffi::mallctl;
     use libc::{self, c_char, c_void};
     use std::{ptr, slice};
+    use std::ffi::CString;
+
 
     extern "C" fn write_cb(printer: *mut c_void, msg: *const c_char) {
         unsafe {
@@ -27,16 +30,18 @@ mod jemalloc {
     }
 
     pub fn dump_stats() -> String {
-        let mut buf = Vec::with_capacity(1024);
+        let mut buf = Vec::with_capacity(1024 * 1024);
         unsafe {
+            mallctl(CString::new("thread.tcache.flush").expect("CString::new failed").as_ptr() ,  ptr::null_mut(),  ptr::null_mut(),  ptr::null_mut(), 0);
             malloc_stats_print(
                 write_cb,
                 &mut buf as *mut Vec<u8> as *mut c_void,
                 ptr::null(),
             )
         }
-        String::from_utf8_lossy(&buf).into_owned()
+        String::from_utf8(buf).unwrap()
     }
+
 
     #[cfg(test)]
     mod tests {

@@ -35,6 +35,7 @@ extern crate test_storage;
 extern crate test_util;
 extern crate tikv;
 
+extern crate backtrace;
 mod channel;
 mod coprocessor;
 mod raftkv;
@@ -45,4 +46,55 @@ mod writebatch;
 #[bench]
 fn _bench_check_requirement(_: &mut test::Bencher) {
     tikv::util::config::check_max_open_fds(4096).unwrap();
+}
+
+#[test]
+fn t(){
+    use tikv::util::jemalloc;
+    println!("tttt");
+    let s = jemalloc::dump_stats();
+    let bt = backtrace::Backtrace::new();
+    println!("{:?}",bt);
+
+    println!("{}",s);
+
+
+    println!("===========================================");
+    let bt = backtrace::Backtrace::new();
+
+    let s = jemalloc::dump_stats();
+    println!("{}",s);
+    println!("{:?}",bt);
+
+    println!("===========================================");
+    let bt = backtrace::Backtrace::new();
+    let bt = backtrace::Backtrace::new();
+    let s = jemalloc::dump_stats();
+    println!("{}",s);
+    println!("s:len,{}",s.len());
+
+
+    println!("===========================================");
+    let bt = backtrace::Backtrace::new();
+    let bt = backtrace::Backtrace::new();
+    let bt = backtrace::Backtrace::new();
+
+    let s = jemalloc::dump_stats();
+    println!("{}",s);
+    println!("s:len,{}",s.len());
+
+    println!("eeeeeeeeeeeeeeeeeend");
+}
+
+#[test]
+fn backtrace_test(){
+    use backtrace::Backtrace;
+    let mut buf = Vec::with_capacity(10);
+    let dumps_result = Backtrace::dumps_emergency(&mut buf);
+
+    if dumps_result.is_err() {
+        println!("dumps error: {:?}", dumps_result);
+    } else {
+        println!("{}", String::from_utf8(buf).unwrap());
+    }
 }
