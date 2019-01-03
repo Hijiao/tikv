@@ -14,8 +14,11 @@
 #[cfg(all(unix, not(fuzzing)))]
 mod jemalloc {
     use jemallocator::ffi::malloc_stats_print;
+    use jemallocator::ffi::mallctl;
+    use jemallocator::mallctl_set;
     use libc::{self, c_char, c_void};
     use std::{ptr, slice};
+    use std::ffi::CString;
 
     extern "C" fn write_cb(printer: *mut c_void, msg: *const c_char) {
         unsafe {
@@ -27,8 +30,11 @@ mod jemalloc {
     }
 
     pub fn dump_stats() -> String {
-        let mut buf = Vec::with_capacity(1024);
+        let mut buf = Vec::with_capacity(1024 * 1024);
         unsafe {
+//            mallctl_set(b"prof.active\0", true);
+//            mallctl_set(b"opt.tcache",false);
+            mallctl(CString::new("thread.tcache.flush").expect("CString::new failed").as_ptr() ,  ptr::null_mut(),  ptr::null_mut(),  ptr::null_mut(), 0);
             malloc_stats_print(
                 write_cb,
                 &mut buf as *mut Vec<u8> as *mut c_void,
@@ -37,6 +43,18 @@ mod jemalloc {
         }
         String::from_utf8_lossy(&buf).into_owned()
     }
+
+    pub fn dumps(){
+        unsafe {
+            let epoch_name = "prof.dump";
+            let epoch_c_name = CString::new(epoch_name).unwrap();
+            mallctl(epoch_c_name.as_ptr(), ptr::null_mut(), ptr::null_mut(), ptr::null_mut(), 0);
+//            mallctl_set(b"prof.dump", CString::new("/home/pingcap/xiahaijiao/tikvdumps.zz").expect("CString::new failed").as_ptr() );
+            println!("dumps heap");
+
+        }
+    }
+
 
     #[cfg(test)]
     mod tests {
@@ -56,3 +74,4 @@ mod jemalloc {
 }
 
 pub use self::jemalloc::dump_stats;
+pub use self::jemalloc::dumps;

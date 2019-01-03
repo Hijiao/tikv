@@ -35,12 +35,14 @@ extern crate test_storage;
 extern crate test_util;
 extern crate tikv;
 
+extern crate backtrace;
 mod channel;
 mod coprocessor;
 mod raftkv;
 mod serialization;
 mod storage;
 mod writebatch;
+mod backtrace_stats;
 
 #[bench]
 fn _bench_check_requirement(_: &mut test::Bencher) {
